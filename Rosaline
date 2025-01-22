@@ -1,0 +1,76 @@
+from transformers import GPT3Tokenizer, GPT3ForCausalLM
+
+class RosalynNLP:
+    def __init__(self):
+        self.tokenizer = GPT3Tokenizer.from_pretrained('gpt3')
+        self.model = GPT3ForCausalLM.from_pretrained('gpt3')
+
+    def generate_response(self, input_text):
+        inputs = self.tokenizer(input_text, return_tensors='pt')
+        outputs = self.model.generate(**inputs, max_length=200)
+        response = self.tokenizer.decode(outputs[0], skip_special_tokens=True)
+        return response
+
+# Example usage
+rosalyn_nlp = RosalynNLP()
+input_text = "Hello, how can I help you today?"
+response = rosalyn_nlp.generate_response(input_text)
+print(response)
+
+from dalle_pytorch import DALLE
+from PIL import Image
+import torch
+
+class RosalynImageGenerator:
+    def __init__(self, dalle_model_path):
+        self.model = DALLE.load(dalle_model_path)
+
+    def generate_image(self, text_prompt):
+        text = self.model.tokenizer.tokenize(text_prompt)
+        text = text.unsqueeze(0).to('cuda')
+        image = self.model.generate_images(text)
+        image = image.cpu().detach().numpy()[0]
+        image = Image.fromarray((image * 255).astype('uint8'))
+        return image
+
+# Example usage
+dalle_model_path = 'path_to_pretrained_dalle_model'
+rosalyn_image_generator = RosalynImageGenerator(dalle_model_path)
+text_prompt = "A futuristic cityscape at sunset"
+image = rosalyn_image_generator.generate_image(text_prompt)
+image.show()
+
+class RosalynAI:
+    def __init__(self, dalle_model_path):
+        self.nlp = RosalynNLP()
+        self.image_generator = RosalynImageGenerator(dalle_model_path)
+
+    def process_request(self, input_text):
+        response = self.nlp.generate_response(input_text)
+        if "generate image" in input_text:
+            text_prompt = input_text.replace("generate image", "").strip()
+            image = self.image_generator.generate_image(text_prompt)
+            return response, image
+        else:
+            return response, None
+
+# Example usage
+dalle_model_path = 'path_to_pretrained_dalle_model'
+rosalyn_ai = RosalynAI(dalle_model_path)
+input_text = "generate image of a futuristic cityscape at sunset"
+response, image = rosalyn_ai.process_request(input_text)
+print(response)
+if image:
+    image.show()
+
+from transformers import pipeline
+
+# Initialize a text generation pipeline
+generator = pipeline('text-generation', model='gpt2')
+
+# Generate text
+input_text = "Once upon a time"
+generated_text = generator(input_text, max_length=50, num_return_sequences=1)
+
+print(generated_text[0]['generated_text'])
+
